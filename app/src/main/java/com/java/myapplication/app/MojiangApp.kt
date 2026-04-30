@@ -25,6 +25,7 @@ import androidx.compose.material.icons.rounded.FileUpload
 import androidx.compose.material.icons.rounded.Psychology
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -59,6 +60,7 @@ import com.java.myapplication.ui.screens.PromptsScreen
 import com.java.myapplication.ui.screens.RewriteScreen
 import com.java.myapplication.ui.screens.SettingsScreen
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MojiangApp() {
     val navController = rememberNavController()
@@ -144,10 +146,9 @@ fun MojiangApp() {
                             .height(68.dp)
                             .clip(RoundedCornerShape(34.dp)),
                         containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
-                        tonalElevation = CardElevation.level2,
-                        shadowElevation = 8.dp
+                        tonalElevation = CardElevation.level2
                     ) {
-                        bottomDestinations.forEach { destination ->
+                        for (destination in bottomDestinations) {
                             val icon = when (destination) {
                                 AppDestination.Dashboard -> Icons.Rounded.Dashboard
                                 AppDestination.Project -> Icons.Rounded.AutoStories
