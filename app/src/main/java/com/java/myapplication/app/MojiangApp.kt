@@ -87,7 +87,7 @@ fun MojiangApp() {
 private fun MainScreen(
     onNavigateToReader: (Long) -> Unit
 ) {
-    var selectedTab by remember { mutableStateOf(AppDestination.Dashboard) }
+    var selectedTab: AppDestination by remember { mutableStateOf(AppDestination.Dashboard) }
 
     Box(
         modifier = Modifier
