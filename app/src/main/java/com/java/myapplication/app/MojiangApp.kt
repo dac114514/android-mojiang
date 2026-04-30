@@ -2,8 +2,10 @@ package com.java.myapplication.app
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -22,6 +24,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -36,6 +39,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
+import com.java.myapplication.ui.theme.CardElevation
 import com.java.myapplication.ui.screens.DashboardScreen
 import com.java.myapplication.ui.screens.ExportScreen
 import com.java.myapplication.ui.screens.ProjectScreen
@@ -71,14 +75,16 @@ fun MojiangApp() {
                     modifier = Modifier
                         .fillMaxWidth()
                         .navigationBarsPadding()
-                        .padding(horizontal = 18.dp, vertical = 12.dp)
+                        .padding(horizontal = 20.dp, vertical = 8.dp)
                 ) {
                     NavigationBar(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(32.dp)),
-                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f),
-                        tonalElevation = 0.dp
+                            .height(68.dp)
+                            .clip(RoundedCornerShape(34.dp)),
+                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
+                        tonalElevation = CardElevation.level2,
+                        shadowElevation = 8.dp
                     ) {
                         bottomDestinations.forEach { destination ->
                             val icon = when (destination) {
@@ -100,8 +106,15 @@ fun MojiangApp() {
                                         }
                                     }
                                 },
-                                icon = { Icon(icon, contentDescription = destination.label) },
-                                label = { Text(destination.label) }
+                                icon = { Icon(icon, contentDescription = destination.label, modifier = Modifier.size(24.dp)) },
+                                label = { Text(destination.label, style = MaterialTheme.typography.labelSmall) },
+                                colors = NavigationBarItemDefaults.colors(
+                                    selectedIconColor = MaterialTheme.colorScheme.primary,
+                                    selectedTextColor = MaterialTheme.colorScheme.primary,
+                                    indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+                                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             )
                         }
                     }
