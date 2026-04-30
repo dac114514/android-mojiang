@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>墨匠 Rewrite — UI 重构概念稿 v2</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --primary: #6E4FF6;
+    --primary-light: #9A7BFF;
+    --primary-container: #EDE7FF;
+    --accent: #FF7D5C;
+    --success: #20C997;
+    --warning: #FFB020;
+    --error: #E74C3C;
+    --bg: #F6F7FB;
+    --surface: #FFFFFF;
+    --surface-variant: #EEF1F7;
+    --text: #17181C;
+    --text-secondary: #666D80;
+    --text-tertiary: #9CA3B0;
+    --card-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    --card-shadow-hover: 0 4px 16px rgba(0,0,0,0.10);
+    --nav-shadow: 0 4px 24px rgba(110,79,246,0.20);
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC', 'Noto Sans SC', sans-serif;
+    background: #E8EAF0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 24px;
+    gap: 32px;
+  }
+  .phone {
+    width: 390px;
+    height: 844px;
+    background: var(--bg);
+    border-radius: 44px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.18), inset 0 0 0 1px rgba(255,255,255,0.5);
+    display: flex;
+    flex-direction: column;
+  }
+  .status-bar {
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 28px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+  }
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 20px 0;
+    flex-shrink: 0;
+  }
+  .topbar-title { font-size: 18px; font-weight: 600; color: var(--text); }
+  .topbar-actions { display: flex; gap: 16px; }
+  .topbar-btn {
+    width: 36px; height: 36px; border-radius: 50%; border: none;
+    background: transparent; cursor: pointer; display: flex;
+    align-items: center; justify-content: center; color: var(--text-secondary);
+    transition: background 0.15s;
+  }
+  .topbar-btn:hover { background: var(--surface-variant); }
+  .topbar-btn svg { width: 22px; height: 22px; }
+
+  /* 全局进度条 */
+  .progress-bar-wrap {
+    padding: 6px 20px 8px;
+    flex-shrink: 0;
+  }
+  .progress-info {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--text-tertiary);
+    margin-bottom: 4px;
+  }
+  .progress-info strong { color: var(--primary); }
+  .progress-track {
+    width: 100%;
+    height: 4px;
+    background: var(--surface-variant);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: var(--primary);
+    border-radius: 2px;
+    transition: width 0.3s;
+  }
+
+  .content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 20px 100px;
+    scroll-behavior: smooth;
+  }
+  .content::-webkit-scrollbar { width: 3px; }
+  .content::-webkit-scrollbar-thumb { background: var(--primary-light); border-radius: 4px; }
+
+  /* 组件 */
+  .hero-card {
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    border-radius: 28px;
+    padding: 28px;
+    color: white;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 20px rgba(110,79,246,0.25);
+  }
+  .hero-card h1 { font-size: 26px; font-weight: 700; margin-bottom: 6px; }
+  .hero-card .sub { font-size: 15px; opacity: 0.9; margin-bottom: 12px; }
+  .hero-card .foot { font-size: 13px; opacity: 0.7; }
+
+  .section-title {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin: 16px 0 12px;
+  }
+  .section-title h2 { font-size: 17px; font-weight: 600; color: var(--text); }
+
+  .metric-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .metric-card {
+    background: var(--surface);
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: var(--card-shadow);
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .metric-card:hover { transform: translateY(-2px); box-shadow: var(--card-shadow-hover); }
+  .metric-card .label { font-size: 12px; font-weight: 500; color: var(--text-secondary); margin-bottom: 4px; }
+  .metric-card .value { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+  .metric-card .caption { font-size: 11px; color: var(--text-tertiary); }
+  .metric-card .accent-line { width: 32px; height: 3px; border-radius: 4px; margin-bottom: 8px; }
+
+  .badge {
+    display: inline-flex; align-items: center;
+    padding: 2px 10px; border-radius: 100px;
+    font-size: 11px; font-weight: 500; line-height: 20px;
+  }
+  .badge-primary { background: var(--primary); color: white; }
+  .badge-success { background: var(--success); color: white; }
+  .badge-warning { background: var(--warning); color: white; }
+  .badge-subtle { background: var(--surface-variant); color: var(--text-secondary); }
+
+  .chapter-item {
+    display: flex;
+    align-items: center;
+    padding: 14px 16px;
+    background: var(--surface);
+    border-radius: 14px;
+    box-shadow: var(--card-shadow);
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: transform 0.15s;
+  }
+  .chapter-item:hover { transform: translateX(4px); }
+  .chapter-item .info { flex: 1; }
+  .chapter-item .info .title { font-size: 14px; font-weight: 600; color: var(--text); }
+  .chapter-item .info .meta { font-size: 12px; color: var(--text-tertiary); margin-top: 2px; }
+  .chapter-item .arrow { color: var(--text-tertiary); display: flex; }
+
+  /* 搜索框 */
+  .search-field {
+    width: 100%;
+    padding: 10px 14px 10px 40px;
+    border: 1px solid #E0E4ED;
+    border-radius: 12px;
+    font-size: 14px;
+    background: var(--surface);
+    color: var(--text);
+    outline: none;
+    transition: border 0.15s;
+    margin-bottom: 12px;
+  }
+  .search-field:focus { border-color: var(--primary); }
+  .search-wrap { position: relative; }
+  .search-wrap .search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-tertiary);
+    pointer-events: none;
+  }
+
+  /* form group */
+  .form-group {
+    background: var(--surface);
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: var(--card-shadow);
+    margin-bottom: 12px;
+  }
+  .form-group .group-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .form-group .group-header svg { width: 18px; height: 18px; color: var(--primary); flex-shrink: 0; }
+  .form-group .group-header h3 { font-size: 14px; font-weight: 600; color: var(--text); }
+  .form-field {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid #E0E4ED;
+    border-radius: 12px;
+    font-size: 14px;
+    background: var(--bg);
+    color: var(--text);
+    margin-bottom: 8px;
+    outline: none;
+    transition: border 0.15s;
+  }
+  .form-field:focus { border-color: var(--primary); }
+  .form-row { display: flex; gap: 8px; }
+  .form-row .form-field { margin-bottom: 0; }
+
+  .btn {
+    padding: 10px 20px;
+    border-radius: 12px;
+    border: none;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-primary { background: var(--primary); color: white; }
+  .btn-primary:hover { background: #5A3DE0; }
+  .btn-outline { background: transparent; border: 1px solid var(--primary); color: var(--primary); }
+  .btn-outline:hover { background: var(--primary-container); }
+  .btn-sm { padding: 6px 14px; font-size: 12px; }
+
+  .info-note {
+    background: var(--primary-container);
+    border-radius: 12px;
+    padding: 12px 14px;
+    font-size: 12px;
+    color: var(--primary);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    display: inline-block;
+  }
+
+  /* 开关 */
+  .switch {
+    width: 44px; height: 24px;
+    border-radius: 12px;
+    position: relative;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .switch.on { background: var(--primary); }
+  .switch.off { background: var(--surface-variant); border: 1px solid #ddd; }
+  .switch .thumb {
+    width: 20px; height: 20px;
+    background: white;
+    border-radius: 50%;
+    position: absolute;
+    top: 1px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    transition: left 0.15s;
+  }
+  .switch.on .thumb { right: 2px; }
+  .switch.off .thumb { left: 2px; }
+
+  .setting-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    font-size: 13px;
+  }
+
+  /* 底部导航 */
+  .bottom-nav-wrap {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    padding: 0 20px 12px;
+    pointer-events: none;
+  }
+  .bottom-nav {
+    pointer-events: auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    background: rgba(255,255,255,0.96);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: 34px;
+    height: 68px;
+    padding: 0 4px;
+    box-shadow: var(--nav-shadow);
+    border: 1px solid rgba(255,255,255,0.5);
+  }
+  .nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    flex: 1;
+    height: 56px;
+    border-radius: 28px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: var(--text-tertiary);
+    position: relative;
+  }
+  .nav-item svg { width: 22px; height: 22px; transition: all 0.2s; }
+  .nav-item .nav-label { font-size: 10px; font-weight: 500; transition: all 0.2s; }
+  .nav-item.active { color: var(--primary); }
+  .nav-item.active::before {
+    content: '';
+    position: absolute;
+    inset: 4px 8px;
+    border-radius: 24px;
+    background: var(--primary-container);
+    z-index: -1;
+  }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* 阅读器特殊样式 */
+  .reader-content {
+    font-size: 17px;
+    line-height: 1.8;
+    color: var(--text);
+    padding: 8px 0;
+  }
+
+  .design-label {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: var(--accent);
+    color: white;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 6px;
+    letter-spacing: 0.5px;
+    z-index: 10;
+  }
+  .annotation {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    background: var(--surface);
+    padding: 10px 14px;
+    border-radius: 12px;
+    box-shadow: var(--card-shadow);
+    max-width: 240px;
+  }
+  .annotation .tag {
+    background: var(--accent);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .side-notes {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+</style>
+</head>
+<body>
+
+<div class="phone" id="phone">
+  <div class="design-label">概念设计 v2</div>
+
+  <div class="status-bar">
+    <span>9:41</span>
+    <span>🔋 98%</span>
+  </div>
+
+  <!-- 顶部栏 -->
+  <div class="topbar">
+    <div class="topbar-title" id="pageTitle">墨匠 Rewrite</div>
+    <div class="topbar-actions">
+      <button class="topbar-btn" onclick="switchTab('settings')" title="设置">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- 全局进度条 -->
+  <div class="progress-bar-wrap">
+    <div class="progress-info">
+      <span>改写进度：60 / 1,744 章</span>
+      <span><strong>3%</strong></span>
+    </div>
+    <div class="progress-track">
+      <div class="progress-fill" style="width:3%;"></div>
+    </div>
+  </div>
+
+  <!-- 内容区域 -->
+  <div class="content" id="contentArea">
+
+    <!-- ===== TAB 1: 概览 ===== -->
+    <div class="tab-panel active" id="tab-dashboard">
+      <div class="hero-card">
+        <h1>墨匠 Rewrite</h1>
+        <div class="sub">长篇小说改写与加料工作台</div>
+        <div class="foot">已加载 1 个项目 · 仙逆 · 数据已持久化</div>
+      </div>
+
+      <div class="section-title">
+        <h2>工作概览</h2>
+      </div>
+
+      <div class="metric-grid">
+        <div class="metric-card">
+          <div class="accent-line" style="background:var(--primary);"></div>
+          <div class="label">当前项目</div>
+          <div class="value" style="color:var(--primary);">1 个</div>
+          <div class="caption">仙逆 · 已导入</div>
+        </div>
+        <div class="metric-card">
+          <div class="accent-line" style="background:var(--accent);"></div>
+          <div class="label">章节总量</div>
+          <div class="value" style="color:var(--accent);">1,744 章</div>
+          <div class="caption">待处理 1,684 章</div>
+        </div>
+        <div class="metric-card">
+          <div class="accent-line" style="background:var(--success);"></div>
+          <div class="label">模型配置</div>
+          <div class="value" style="color:var(--success);">1 套</div>
+          <div class="caption">DeepSeek · 已连接</div>
+        </div>
+        <div class="metric-card">
+          <div class="accent-line" style="background:var(--warning);"></div>
+          <div class="label">处理状态</div>
+          <div class="value" style="color:var(--warning);">60 / 60</div>
+          <div class="caption">已完成 60 章改写</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== TAB 2: 项目 ===== -->
+    <div class="tab-panel" id="tab-project">
+      <div class="section-title"><h2>项目工作台</h2></div>
+
+      <!-- 项目信息卡（简化，无自动分章） -->
+      <div class="form-group">
+        <div style="margin-bottom:8px;">
+          <div style="font-size:16px;font-weight:600;">仙逆 · 耳根</div>
+          <div style="font-size:12px;color:var(--text-tertiary);">xianni.txt · 1,744 章 · 528 万字</div>
+        </div>
+        <button class="btn btn-primary">导入 TXT</button>
+      </div>
+
+      <div class="section-title"><h2>章节列表</h2><span class="badge badge-subtle">1,744 章</span></div>
+
+      <!-- 搜索筛选栏 -->
+      <div class="search-wrap">
+        <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input class="search-field" placeholder="按章节标题或编号筛选…" value="">
+      </div>
+
+      <!-- 章节列表（简化，每项只有标题+状态+箭头） -->
+      <div class="chapter-item" onclick="switchTab('reader')">
+        <div class="info">
+          <div class="title">第 1 章 · 引子</div>
+          <div class="meta">2,304 字</div>
+        </div>
+        <span class="badge badge-primary" style="margin-right:8px;">已加料</span>
+        <span class="arrow"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></span>
+      </div>
+      <div class="chapter-item" onclick="switchTab('reader')">
+        <div class="info">
+          <div class="title">第 2 章 · 入门</div>
+          <div class="meta">3,120 字</div>
+        </div>
+        <span class="badge badge-primary" style="margin-right:8px;">已加料</span>
+        <span class="arrow"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></span>
+      </div>
+      <div class="chapter-item" onclick="switchTab('reader')">
+        <div class="info">
+          <div class="title">第 3 章 · 山中修炼</div>
+          <div class="meta">2,876 字</div>
+        </div>
+        <span class="badge badge-primary" style="margin-right:8px;">已加料</span>
+        <span class="arrow"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></span>
+      </div>
+      <div class="chapter-item" onclick="switchTab('reader')">
+        <div class="info">
+          <div class="title">第 4 章 · 天逆现世</div>
+          <div class="meta">2,543 字</div>
+        </div>
+        <span class="badge badge-success" style="margin-right:8px;">已加料</span>
+        <span class="arrow"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></span>
+      </div>
+      <div class="chapter-item" onclick="switchTab('reader')">
+        <div class="info">
+          <div class="title">第 5 章 · 夺舍</div>
+          <div class="meta">3,011 字</div>
+        </div>
+        <span class="badge badge-subtle" style="margin-right:8px;">待处理</span>
+        <span class="arrow"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></span>
+      </div>
+    </div>
+
+    <!-- ===== TAB 3: 加料 ===== -->
+    <div class="tab-panel" id="tab-rewrite">
+      <div class="section-title"><h2>加料与改写</h2></div>
+
+      <div class="form-group">
+        <div class="group-header">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/></svg>
+          <h3>处理范围</h3>
+        </div>
+        <div style="font-size:12px;color:var(--text-tertiary);margin-bottom:8px;">当前：仙逆 · 共 1,744 章</div>
+        <div class="form-row">
+          <input class="form-field" value="1" placeholder="起始章节">
+          <input class="form-field" value="10" placeholder="结束章节">
+        </div>
+        <div style="font-size:12px;color:var(--text-tertiary);margin-top:6px;">当前范围：第 1 - 10 章</div>
+      </div>
+
+      <div class="form-group">
+        <div class="group-header">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          <h3>改写策略</h3>
+        </div>
+        <div style="margin-bottom:10px;">
+          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;">
+            <span>加料强度</span><span style="color:var(--primary);font-weight:600;">65%</span>
+          </div>
+          <div style="height:6px;background:var(--surface-variant);border-radius:4px;overflow:hidden;">
+            <div style="width:65%;height:100%;background:linear-gradient(90deg,var(--primary),var(--accent));border-radius:4px;"></div>
+          </div>
+        </div>
+        <div class="setting-row"><span>保留原剧情</span><div class="switch on"><div class="thumb"></div></div></div>
+        <div class="setting-row"><span>保留角色名称与称呼</span><div class="switch on"><div class="thumb"></div></div></div>
+      </div>
+
+      <!-- 提示词模板：折叠式 + 弹窗编辑 -->
+      <div class="form-group">
+        <div class="group-header" style="cursor:pointer;margin-bottom:0;" onclick="toggleTemplates()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          <h3 style="flex:1;">提示词模板</h3>
+          <svg id="templateChevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-tertiary);transition:transform 0.2s;"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <!-- 下拉选择 + 管理按钮（始终显示） -->
+        <div class="form-row" style="margin-top:12px;">
+          <div style="flex:1;position:relative;">
+            <input class="form-field" value="默认加料模板" readonly style="cursor:pointer;padding-right:36px;margin-bottom:0;">
+            <svg style="position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--text-tertiary);pointer-events:none;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <button class="btn btn-outline btn-sm" onclick="openTemplateDialog()">管理</button>
+        </div>
+        <!-- 展开的模板列表（默认隐藏） -->
+        <div id="templateList" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--surface-variant);">
+          <div style="font-size:12px;font-weight:500;color:var(--text-secondary);margin-bottom:8px;">已保存模板</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--surface-variant);">
+            <div style="flex:1;">
+              <div style="font-size:13px;font-weight:600;">默认加料模板</div>
+              <div style="font-size:11px;color:var(--text-tertiary);">请对以下小说章节进行加料改写，丰富细节描…</div>
+            </div>
+            <div style="display:flex;gap:4px;">
+              <button class="topbar-btn" onclick="openTemplateDialog()" style="width:30px;height:30px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              </button>
+              <button class="topbar-btn" style="width:30px;height:30px;color:var(--error);">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              </button>
+            </div>
+          </div>
+          <button class="btn btn-outline btn-sm" style="width:100%;margin-top:8px;display:flex;align-items:center;justify-content:center;gap:6px;" onclick="openTemplateDialog()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            新增模板
+          </button>
+        </div>
+      </div>
+
+      <div class="form-row" style="margin-bottom:12px;">
+        <button class="btn btn-primary" style="flex:1;">后台处理范围</button>
+        <button class="btn btn-outline">改写首章</button>
+      </div>
+
+      <div class="info-note">
+        <span class="dot" style="background:var(--primary);"></span>
+        后台队列：<strong>3</strong> 等待 · <strong>60</strong> 完成 · 0 失败
+        <span style="margin-left:auto;display:flex;gap:6px;">
+          <button class="btn btn-outline btn-sm">重试</button>
+          <button class="btn btn-outline btn-sm">清理</button>
+        </span>
+      </div>
+    </div>
+
+    <!-- ===== TAB 4: 导出 ===== -->
+    <div class="tab-panel" id="tab-export">
+      <div class="section-title"><h2>导出与交付</h2></div>
+
+      <div class="form-group">
+        <div class="group-header">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <h3>导出设置</h3>
+        </div>
+        <div style="font-size:12px;color:var(--text-tertiary);margin-bottom:8px;">当前：仙逆 · 共 1,744 章 · 默认导出改写后内容</div>
+        <div class="form-row">
+          <input class="form-field" value="1" placeholder="起始章节">
+          <input class="form-field" value="1,744" placeholder="结束章节">
+        </div>
+        <div style="font-size:12px;color:var(--text-tertiary);margin:6px 0 10px;">当前范围：第 1 - 1,744 章（全本）</div>
+        <div class="form-row">
+          <button class="btn btn-primary" style="flex:1;">导出 TXT</button>
+          <button class="btn btn-outline">导出当前章</button>
+        </div>
+      </div>
+
+      <div class="section-title"><h2>导出记录</h2></div>
+      <div style="background:var(--surface);border-radius:14px;box-shadow:var(--card-shadow);padding:14px 16px;display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <div>
+          <div style="font-weight:600;font-size:14px;">xianni_加料版.txt</div>
+          <div style="font-size:12px;color:var(--text-tertiary);">第 1-60 章 · 2026-04-30 14:22</div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <span class="badge badge-success">成功</span>
+          <button class="btn btn-outline btn-sm">分享</button>
+        </div>
+      </div>
+      <div style="background:var(--surface);border-radius:14px;box-shadow:var(--card-shadow);padding:14px 16px;display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div style="font-weight:600;font-size:14px;">xianni_第1-30章.txt</div>
+          <div style="font-size:12px;color:var(--text-tertiary);">第 1-30 章 · 2026-04-29 09:15</div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <span class="badge badge-success">成功</span>
+          <button class="btn btn-outline btn-sm">分享</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== TAB 5: 设置（含模型配置） ===== -->
+    <div class="tab-panel" id="tab-settings">
+      <div class="section-title"><h2>设置</h2></div>
+
+      <!-- 界面 -->
+      <div class="form-group">
+        <div class="group-header">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+          <h3>界面</h3>
+        </div>
+        <div class="setting-row"><span>深色界面预设</span><div class="switch off"><div class="thumb"></div></div></div>
+        <div class="setting-row"><span>动态颜色（Android 12+）</span><div class="switch off"><div class="thumb"></div></div></div>
+      </div>
+
+      <!-- 数据管理 -->
+      <div class="form-group">
+        <div class="group-header">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          <h3>数据管理</h3>
+        </div>
+        <div class="setting-row"><span>自动保存本地数据</span><div class="switch on"><div class="thumb"></div></div></div>
+        <button class="btn btn-primary" style="width:100%;margin-top:8px;">立即保存</button>
+      </div>
+
+      <!-- 模型配置（从原模型页合并） -->
+      <div class="form-group">
+        <div class="group-header">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          <h3>模型配置</h3>
+        </div>
+        <div class="form-row" style="margin-bottom:8px;">
+          <input class="form-field" value="DeepSeek 配置" style="flex:1;">
+          <button class="btn btn-outline btn-sm">另存</button>
+        </div>
+        <input class="form-field" value="DeepSeek" placeholder="提供商名称">
+        <input class="form-field" value="https://api.deepseek.com/v1" placeholder="Base URL">
+        <input class="form-field" value="deepseek-chat" placeholder="当前模型">
+        <input class="form-field" value="sk-••••••••" placeholder="API Key" type="password">
+        <div class="form-row">
+          <button class="btn btn-primary" style="flex:1;">保存配置</button>
+          <button class="btn btn-outline">设为默认</button>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 8px;">
+          <span class="badge badge-primary">deepseek-chat</span>
+          <span class="badge badge-subtle" style="cursor:pointer;">deepseek-reasoner</span>
+          <span class="badge badge-subtle" style="cursor:pointer;">gpt-4o-mini</span>
+        </div>
+        <div class="form-row">
+          <button class="btn btn-outline btn-sm" style="flex:1;">拉取模型</button>
+          <button class="btn btn-outline btn-sm" style="flex:1;">测试连接</button>
+        </div>
+        <!-- 已保存配置 -->
+        <div style="margin-top:8px;padding-top:10px;border-top:1px solid var(--surface-variant);">
+          <div style="font-size:12px;font-weight:500;color:var(--text-secondary);margin-bottom:6px;">已保存配置</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;background:var(--bg);border-radius:10px;padding:10px 12px;">
+            <div>
+              <div style="font-size:13px;font-weight:600;">DeepSeek 配置</div>
+              <div style="font-size:11px;color:var(--text-tertiary);">DeepSeek · deepseek-chat</div>
+            </div>
+            <span class="badge badge-success">默认</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 提示词模板（设置页） -->
+      <div class="form-group">
+        <div class="group-header">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          <h3>提示词模板</h3>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;">
+          <div style="flex:1;">
+            <div style="font-size:13px;font-weight:600;">默认加料模板</div>
+            <div style="font-size:11px;color:var(--text-tertiary);">请对以下小说章节进行加料改写…</div>
+          </div>
+          <div style="display:flex;gap:4px;">
+            <button class="topbar-btn" onclick="openTemplateDialog()" style="width:30px;height:30px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            </button>
+          </div>
+        </div>
+        <button class="btn btn-outline btn-sm" style="width:100%;margin-top:4px;display:flex;align-items:center;justify-content:center;gap:6px;" onclick="openTemplateDialog()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          新增模板
+        </button>
+      </div>
+
+      <!-- 数据摘要 -->
+      <div class="form-group">
+        <div class="group-header">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+          <h3>数据摘要</h3>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <div style="background:var(--bg);border-radius:10px;padding:10px;text-align:center;">
+            <div style="font-size:18px;font-weight:700;color:var(--primary);">1</div>
+            <div style="font-size:11px;color:var(--text-tertiary);">项目数</div>
+          </div>
+          <div style="background:var(--bg);border-radius:10px;padding:10px;text-align:center;">
+            <div style="font-size:18px;font-weight:700;color:var(--accent);">60</div>
+            <div style="font-size:11px;color:var(--text-tertiary);">已加料</div>
+          </div>
+          <div style="background:var(--bg);border-radius:10px;padding:10px;text-align:center;">
+            <div style="font-size:18px;font-weight:700;color:var(--success);">5,280,000</div>
+            <div style="font-size:11px;color:var(--text-tertiary);">总字数</div>
+          </div>
+          <div style="background:var(--bg);border-radius:10px;padding:10px;text-align:center;">
+            <div style="font-size:18px;font-weight:700;color:var(--warning);">2</div>
+            <div style="font-size:11px;color:var(--text-tertiary);">导出次数</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== TAB 6: 阅读器 ===== -->
+    <div class="tab-panel" id="tab-reader">
+      <!-- 阅读器顶部（模拟 TopAppBar） -->
+      <div style="display:flex;align-items:center;gap:8px;padding:4px 0 12px;">
+        <button class="topbar-btn" onclick="switchTab('project')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+        </button>
+        <div style="flex:1;">
+          <div style="font-size:15px;font-weight:600;">第 1 章 · 引子</div>
+          <div style="font-size:11px;color:var(--text-tertiary);">2,304 字</div>
+        </div>
+        <div style="display:flex;gap:4px;">
+          <span class="badge badge-primary" style="cursor:pointer;font-size:11px;">原文</span>
+          <span class="badge badge-subtle" style="cursor:pointer;font-size:11px;">改文</span>
+        </div>
+      </div>
+
+      <!-- 阅读内容 -->
+      <div class="reader-content">
+        <p style="margin-bottom:16px;">天逆珠，一个看似普通的珠子，却蕴含了惊天秘密。</p>
+        <p style="margin-bottom:16px;">王林本是朱雀星上一介凡人，因机缘巧合得到天逆珠，从此踏上了修仙之路。他资质平庸，却心志坚定，凭借天逆珠中蕴含的太古传承，一步步走向强者之路。</p>
+        <p style="margin-bottom:16px;">朱雀星的修仙界，弱肉强食，强者为尊。王林深知在这个世界中，没有实力就没有话语权。他隐忍、坚韧，在一次次生死危机中突破自我，最终成为纵横星空的一代强者。</p>
+        <p style="margin-bottom:16px;">然而，修仙之路并非一帆风顺。天逆珠的秘密引来了无数觊觎之人，王林不得不面对来自各方的威胁。在危机与机遇并存的道路上，他将如何抉择？</p>
+        <p style="margin-bottom:16px;">天逆现世，谁主沉浮？一切尽在——墨匠 Rewrite。</p>
+      </div>
+
+      <!-- 阅读器底部导航 -->
+      <div style="margin-top:20px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--surface-variant);padding:12px 0 4px;">
+        <button class="btn btn-outline btn-sm" style="display:flex;align-items:center;gap:4px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+          上一章
+        </button>
+        <span style="font-size:12px;color:var(--text-tertiary);">第 1 章</span>
+        <button class="btn btn-primary btn-sm" style="display:flex;align-items:center;gap:4px;">
+          下一章
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+    </div>
+
+  </div> <!-- /content -->
+
+  <!-- 悬浮底部导航栏 -->
+  <div class="bottom-nav-wrap">
+    <div class="bottom-nav">
+      <button class="nav-item active" data-tab="dashboard" onclick="switchTab('dashboard')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        <span class="nav-label">概览</span>
+      </button>
+      <button class="nav-item" data-tab="project" onclick="switchTab('project')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        <span class="nav-label">项目</span>
+      </button>
+      <button class="nav-item" data-tab="rewrite" onclick="switchTab('rewrite')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+        <span class="nav-label">加料</span>
+      </button>
+      <button class="nav-item" data-tab="export" onclick="switchTab('export')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span class="nav-label">导出</span>
+      </button>
+      <button class="nav-item" data-tab="settings" onclick="switchTab('settings')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <span class="nav-label">设置</span>
+      </button>
+    </div>
+  </div>
+<!-- 模板编辑弹窗 -->
+<div id="templateDialog" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.4);z-index:1000;justify-content:center;align-items:center;" onclick="closeTemplateDialog(event)">
+  <div style="background:var(--surface);border-radius:20px;padding:24px;width:340px;max-width:90vw;box-shadow:0 20px 60px rgba(0,0,0,0.2);" onclick="event.stopPropagation()">
+    <div style="font-size:17px;font-weight:600;margin-bottom:16px;" id="templateDialogTitle">编辑模板</div>
+    <input class="form-field" id="templateDialogName" value="默认加料模板" placeholder="模板名称">
+    <textarea class="form-field" id="templateDialogContent" style="min-height:120px;resize:none;font-size:13px;line-height:1.6;">请对以下小说章节进行加料改写，丰富细节描写、环境氛围和人物心理活动。保留原始剧情走向和人物设定。</textarea>
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:8px;">
+      <button class="btn btn-outline" onclick="closeTemplateDialog()">取消</button>
+      <button class="btn btn-primary" onclick="closeTemplateDialog()">保存</button>
+    </div>
+  </div>
+</div>
+
+</div> <!-- /phone -->
+
+<!-- 侧边标注栏 -->
+<div class="side-notes">
+  <div class="annotation">
+    <span class="tag">1</span>
+    <span>概览页已删除"快捷入口"板块，仅保留指标卡片</span>
+  </div>
+  <div class="annotation">
+    <span class="tag">2</span>
+    <span>项目页无"自动分章"按钮，增加了搜索筛选栏</span>
+  </div>
+  <div class="annotation">
+    <span class="tag">3</span>
+    <span>底部栏改为：概览 / 项目 / 加料 / 导出 / 设置</span>
+  </div>
+  <div class="annotation">
+    <span class="tag">4</span>
+    <span>顶部全局进度条：实时显示改写进度百分比</span>
+  </div>
+  <div class="annotation">
+    <span class="tag">5</span>
+    <span>设置页整合模型配置（原独立模型页合并）</span>
+  </div>
+  <div class="annotation">
+    <span class="tag">6</span>
+    <span>导出页无标签行 / Switch，默认导出加料后内容</span>
+  </div>
+  <div class="annotation">
+    <span class="tag">7</span>
+    <span>新增小说阅读器，支持章节切换和原文/改文切换</span>
+  </div>
+  <div class="annotation">
+    <span class="tag">8</span>
+    <span>点击项目页章节 → 跳转阅读器（非弹窗）</span>
+  </div>
+  <div class="annotation">
+    <span class="tag">9</span>
+    <span>提示词模板折叠式设计 + 弹窗编辑；设置页也包含模板管理</span>
+  </div>
+</div>
+
+<script>
+  const tabNames = {
+    'dashboard': '墨匠 Rewrite',
+    'project': '项目',
+    'rewrite': '加料',
+    'export': '导出',
+    'settings': '设置',
+    'reader': '阅读器'
+  };
+  const tabStack = ['dashboard'];
+
+  function switchTab(tabId) {
+    if (tabId === 'reader') {
+      showPanel('reader');
+      document.getElementById('pageTitle').textContent = '阅读器';
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      return;
+    }
+    showPanel(tabId);
+    document.getElementById('pageTitle').textContent = tabNames[tabId] || tabId;
+    document.querySelectorAll('.nav-item').forEach(n => {
+      n.classList.toggle('active', n.dataset.tab === tabId);
+    });
+    if (tabStack[tabStack.length - 1] !== tabId) tabStack.push(tabId);
+  }
+
+  function showPanel(tabId) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    const panel = document.getElementById('tab-' + tabId);
+    if (panel) panel.classList.add('active');
+    document.getElementById('contentArea').scrollTop = 0;
+  }
+
+  function toggleTemplates() {
+    const list = document.getElementById('templateList');
+    const chevron = document.getElementById('templateChevron');
+    if (list.style.display === 'none') {
+      list.style.display = 'block';
+      chevron.style.transform = 'rotate(180deg)';
+    } else {
+      list.style.display = 'none';
+      chevron.style.transform = 'rotate(0deg)';
+    }
+  }
+
+  function openTemplateDialog() {
+    document.getElementById('templateDialog').style.display = 'flex';
+  }
+
+  function closeTemplateDialog(e) {
+    if (e && e.target !== e.currentTarget) return;
+    document.getElementById('templateDialog').style.display = 'none';
+  }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,28 @@
+*.iml
+.gradle
+/local.properties
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+
+# Generated / local-only files
+logs_extract/
+out/
+.backup/
+.operit/
+66edb7d6-e181-4207-a871-8d729e9bf196/
+*.zip
+*.apk
+*.aab
+
+# Git worktrees
+.worktrees/
