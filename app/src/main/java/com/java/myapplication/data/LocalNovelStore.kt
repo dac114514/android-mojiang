@@ -5,11 +5,8 @@ import android.net.Uri
 import android.provider.OpenableColumns
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.work.ExistingWorkPolicy
-import androidx.work.OneTimeWorkRequestBuilder
-import androidx.work.WorkManager
 import com.java.myapplication.network.ModelApiClient
-import com.java.myapplication.worker.RewriteWorker
+import com.java.myapplication.worker.RewriteForegroundService
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
@@ -203,7 +200,7 @@ object LocalNovelStore {
         refreshLongMemory(novel.id)
         statusMessage.value = "已加入后台队列：${targets.size} 章。退出应用后仍会尽力继续处理。"
         saveQuietly()
-        scheduleRewriteWork(context)
+        RewriteForegroundService.start(context)
     }
 
     fun applyLocalRewrite(chapterIds: List<Long>, prompt: String, intensity: Int, keepPlot: Boolean = true, preserveNames: Boolean = true) {
@@ -266,18 +263,13 @@ object LocalNovelStore {
         }
         statusMessage.value = if (count > 0) "已重新加入失败任务：$count 个" else "没有失败任务"
         saveQuietly()
-        if (count > 0) scheduleRewriteWork(context)
+        if (count > 0) RewriteForegroundService.start(context)
     }
 
     fun clearFinishedJobs() {
         rewriteQueue.removeAll { it.state == "完成" }
         statusMessage.value = "已清理完成任务"
         saveQuietly()
-    }
-
-    private fun scheduleRewriteWork(context: Context) {
-        val request = OneTimeWorkRequestBuilder<RewriteWorker>().build()
-        WorkManager.getInstance(context.applicationContext).enqueueUniqueWork("mojiang_rewrite_queue", ExistingWorkPolicy.KEEP, request)
     }
 
     fun clearRewrite(chapterId: Long) {
