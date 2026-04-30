@@ -140,7 +140,7 @@ fun SettingsScreen() {
         modifier = Modifier.padding(horizontal = 20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        item { SectionTitle("设置", "界面、数据管理、模型配置集中管理。") }
+        item { SectionTitle("设置") }
 
         // === 界面与体验 ===
         item {

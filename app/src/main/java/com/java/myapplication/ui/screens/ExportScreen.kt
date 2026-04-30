@@ -43,7 +43,7 @@ fun ExportScreen() {
         modifier = Modifier.padding(horizontal = 20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        item { SectionTitle("导出与交付", "真实生成 TXT 文件，优先导出加料后内容；未加料章节自动回退原文。") }
+        item { SectionTitle("导出") }
         item {
             Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                 Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -80,7 +80,7 @@ fun ExportScreen() {
                 }
             }
         }
-        item { SectionTitle("导出记录", "文件保存在应用外部私有目录 Android/data/.../files/exports。") }
+        item { SectionTitle("导出记录") }
         if (records.isEmpty()) {
             item {
                 Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
