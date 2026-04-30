@@ -135,7 +135,7 @@ class RewriteForegroundService : Service() {
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("改写完成")
             .setContentText(text)
-            .setOversizedSmallIcon(android.R.drawable.ic_menu_edit)
+            .setSmallIcon(android.R.drawable.ic_menu_edit)
             .setProgress(0, 0, false)
             .setOngoing(false)
             .setSilent(true)
