@@ -10,6 +10,7 @@ import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import com.java.myapplication.data.LocalNovelStore
+import kotlin.concurrent.thread
 
 class RewriteForegroundService : Service() {
 
@@ -39,6 +40,7 @@ class RewriteForegroundService : Service() {
     }
 
     private lateinit var notificationManager: NotificationManager
+    @Volatile
     private var isProcessing = false
 
     override fun onCreate() {
@@ -73,19 +75,21 @@ class RewriteForegroundService : Service() {
         startForeground(NOTIFICATION_ID, buildProgressNotification(0, total))
 
         thread {
-            while (isProcessing) {
-                val hasMore = LocalNovelStore.processNextRewriteBatch(maxItems = 1)
-                val completed = LocalNovelStore.completedJobs()
-                val totalJobs = completed + LocalNovelStore.queuedJobs()
-                updateProgressNotification(completed, totalJobs)
+            runCatching {
+                while (isProcessing) {
+                    val hasMore = LocalNovelStore.processNextRewriteBatch(maxItems = 1)
+                    val completed = LocalNovelStore.completedJobs()
+                    val totalJobs = completed + LocalNovelStore.queuedJobs()
+                    updateProgressNotification(completed, totalJobs)
 
-                if (!hasMore) break
-            }
+                    if (!hasMore) break
+                }
 
-            if (isProcessing) {
-                val done = LocalNovelStore.completedJobs()
-                val failed = LocalNovelStore.rewriteQueue.count { it.state == "失败" }
-                showCompletionNotification(done, failed)
+                if (isProcessing) {
+                    val done = LocalNovelStore.completedJobs()
+                    val failed = LocalNovelStore.rewriteQueue.count { it.state == "失败" }
+                    showCompletionNotification(done, failed)
+                }
             }
 
             isProcessing = false
