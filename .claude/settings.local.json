@@ -9,7 +9,23 @@
       "Bash(cat .git)",
       "Bash(git status *)",
       "Bash(git init *)",
-      "Bash(git checkout *)"
+      "Bash(git checkout *)",
+      "Bash(git push *)",
+      "Bash(git merge *)",
+      "Bash(git stash *)",
+      "Bash(ls -la .worktrees)",
+      "Bash(ls -la worktrees)",
+      "Bash(cat .gitignore)",
+      "Bash(git worktree *)",
+      "Bash(git show *)",
+      "Bash(ls gradlew*)",
+      "Bash(ls app/build.gradle*)",
+      "Bash(ls build.gradle*)",
+      "Bash(git branch *)"
     ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "input=$(cat); echo \"$(echo \"$input\" | jq -r '.model.display_name') in $(echo \"$input\" | jq -r '.workspace.current_dir')\""
   }
 }
