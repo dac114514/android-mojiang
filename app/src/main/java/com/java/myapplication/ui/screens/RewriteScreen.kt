@@ -5,17 +5,14 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.Bolt
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Description
 import androidx.compose.material.icons.rounded.Edit
@@ -40,7 +37,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -69,20 +65,15 @@ fun RewriteScreen() {
     val context = LocalContext.current
     val templates = LocalNovelStore.promptTemplates
     var intensity by remember { mutableFloatStateOf(0.65f) }
-    var keepPlot by remember { mutableStateOf(true) }
-    var preserveNames by remember { mutableStateOf(true) }
     var startChapter by remember { mutableStateOf("1") }
     var endChapter by remember { mutableStateOf("1") }
     var selectedTemplateId by remember { mutableStateOf(templates.firstOrNull()?.id) }
     var dropdownExpanded by remember { mutableStateOf(false) }
-    var promptOverride by remember { mutableStateOf("") }
-    var savePromptTitle by remember { mutableStateOf("") }
     var templatesExpanded by remember { mutableStateOf(false) }
     var showTemplateDialog by remember { mutableStateOf(false) }
     var editingTemplateId by remember { mutableStateOf<Long?>(null) }
 
     val selectedTemplate = templates.firstOrNull { it.id == selectedTemplateId } ?: templates.firstOrNull()
-    val effectivePrompt = promptOverride.ifBlank { selectedTemplate?.content.orEmpty() }
     val rangeSummary = buildRangeSummary(startChapter, endChapter)
     val failedJobs = LocalNovelStore.rewriteQueue.count { it.state == "失败" }
     val snackbarHostState = remember { SnackbarHostState() }
@@ -93,7 +84,7 @@ fun RewriteScreen() {
             modifier = Modifier.padding(horizontal = 20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            item { SectionTitle("加料与改写", "选择章节范围和自定义提示词，处理后可回到项目页查看加料后内容。") }
+            item { SectionTitle("改写") }
             item {
                 Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                     Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -117,12 +108,10 @@ fun RewriteScreen() {
                     Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Icon(Icons.Rounded.Psychology, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                            Text("改写策略", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                            Text("强度", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                         }
                         Text("加料强度 ${(intensity * 100).toInt()}%", style = MaterialTheme.typography.titleMedium)
                         Slider(value = intensity, onValueChange = { intensity = it })
-                        SettingRow("保留原剧情", keepPlot) { keepPlot = it }
-                        SettingRow("保留角色名称与称呼", preserveNames) { preserveNames = it }
                     }
                 }
             }
@@ -136,7 +125,7 @@ fun RewriteScreen() {
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Icon(Icons.Rounded.Description, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                                Text("提示词模板", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                                Text("提示词", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                             }
                             Icon(
                                 if (templatesExpanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
@@ -164,7 +153,6 @@ fun RewriteScreen() {
                                             text = { Text(template.title) },
                                             onClick = {
                                                 selectedTemplateId = template.id
-                                                promptOverride = ""
                                                 dropdownExpanded = false
                                             }
                                         )
@@ -225,57 +213,18 @@ fun RewriteScreen() {
             }
             item {
                 Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-                    Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                        OutlinedTextField(
-                            value = promptOverride.ifBlank { selectedTemplate?.content.orEmpty() },
-                            onValueChange = { promptOverride = it },
-                            modifier = Modifier.fillMaxWidth(),
-                            minLines = 7,
-                            label = { Text("自定义提示词：本次会按这里的内容执行") },
-                            supportingText = { Text("可直接改；留空则使用上方模板。建议写清：加料方向、保留内容、禁改规则、输出格式。") }
-                        )
-                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                            OutlinedTextField(
-                                value = savePromptTitle,
-                                onValueChange = { savePromptTitle = it },
-                                modifier = Modifier.weight(1f),
-                                singleLine = true,
-                                label = { Text("保存为模板名称") }
-                            )
-                            OutlinedButton(
-                                onClick = {
-                                    val prompt = promptOverride.ifBlank { selectedTemplate?.content.orEmpty() }
-                                    LocalNovelStore.upsertPrompt(null, savePromptTitle.ifBlank { "自定义模板" }, prompt)
-                                    selectedTemplateId = LocalNovelStore.promptTemplates.firstOrNull()?.id
-                                    LocalNovelStore.saveQuietly()
-                                    savePromptTitle = ""
-                                    LocalNovelStore.statusMessage.value = "已保存自定义提示词模板"
-                                },
-                                enabled = effectivePrompt.isNotBlank()
-                            ) { Text("保存模板") }
-                        }
-                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                            Button(
-                                onClick = {
-                                    val start = startChapter.toIntOrNull()?.coerceAtLeast(1) ?: 1
-                                    val end = endChapter.toIntOrNull()?.coerceAtLeast(start) ?: start
-                                    val chapters = novel?.chapters?.filter { it.index in start..end }.orEmpty()
-                                    LocalNovelStore.enqueueRewrite(context, chapters.map { it.id }, effectivePrompt, (intensity * 100).toInt(), keepPlot, preserveNames)
-                                    scope.launch { snackbarHostState.showSnackbar("已加入改写队列") }
-                                },
-                                enabled = novel != null,
-                                modifier = Modifier.weight(1f)
-                            ) { Text("后台处理范围") }
-                            OutlinedButton(
-                                onClick = {
-                                    val chapter = novel?.chapters?.firstOrNull { it.index == (startChapter.toIntOrNull() ?: 1) }
-                                    LocalNovelStore.enqueueRewrite(context, listOfNotNull(chapter?.id), effectivePrompt, (intensity * 100).toInt(), keepPlot, preserveNames)
-                                    scope.launch { snackbarHostState.showSnackbar("已加入改写队列") }
-                                },
-                                enabled = novel != null,
-                                modifier = Modifier.weight(1f)
-                            ) { Text("真实改写首章") }
-                        }
+                    Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Button(
+                            onClick = {
+                                val start = startChapter.toIntOrNull()?.coerceAtLeast(1) ?: 1
+                                val end = endChapter.toIntOrNull()?.coerceAtLeast(start) ?: start
+                                val chapters = novel?.chapters?.filter { it.index in start..end }.orEmpty()
+                                LocalNovelStore.enqueueRewrite(context, chapters.map { it.id }, selectedTemplate?.content.orEmpty(), (intensity * 100).toInt())
+                                scope.launch { snackbarHostState.showSnackbar("已加入改写队列") }
+                            },
+                            enabled = novel != null,
+                            modifier = Modifier.fillMaxWidth()
+                        ) { Text("开始改写") }
                         Text(LocalNovelStore.statusMessage.value, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text("后台队列：剩余 ${LocalNovelStore.queuedJobs()} · 已完成 ${LocalNovelStore.completedJobs()} · 失败 $failedJobs", color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
@@ -285,19 +234,8 @@ fun RewriteScreen() {
                     }
                 }
             }
-            item {
-                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
-                    Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Icon(Icons.Rounded.Bolt, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                            Text("长篇一致性记忆", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                        }
-                        Text(LocalNovelStore.longMemorySummary.value, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                }
-            }
             novel?.let {
-                item { SectionTitle("处理状态", "已加料章节可以在项目页点开查看。") }
+                item { SectionTitle("处理状态") }
                 items(it.chapters) { chapter ->
                     Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
                         Row(modifier = Modifier.fillMaxWidth().padding(14.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
@@ -356,17 +294,5 @@ fun RewriteScreen() {
                 }
             }
         )
-    }
-}
-
-@Composable
-private fun SettingRow(title: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(title, style = MaterialTheme.typography.bodyLarge)
-        Switch(checked = checked, onCheckedChange = onCheckedChange)
     }
 }
