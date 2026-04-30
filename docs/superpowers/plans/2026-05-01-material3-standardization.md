@@ -1,5 +1,31 @@
-package com.java.myapplication.app
+# MD3 标准化与滑动动画 实施计划
 
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** 对墨匠 Rewrite 的 UI 进行 Material Design 3 标准化，重构导航架构并增加 Tab 切换滑动动画
+
+**Architecture:**
+- 顶层新增 NavHost 管理"主界面(main)" vs "全屏页面(reader/prompts)"
+- 主界面内用 AnimatedContent 驱动 5 个 Tab 页面的位置感知滑动切换
+- 阅读器和提示词页面全屏独立，不受主 Scaffold 约束
+- 底部导航栏移除外层 Box，改为圆角悬浮半透明样式
+
+**Tech Stack:** Jetpack Compose, Material3, AnimatedContent, Navigation Compose
+
+---
+
+### Task 1: MojiangApp.kt - 完整重构
+
+**文件:** `app/src/main/java/com/java/myapplication/app/MojiangApp.kt`
+
+将此文件从单级 Scaffold+NavHost 重构为双层架构：
+- 外层：NavHost("main" / "reader/{chapterId}" / "prompts")
+- 内层 MainScreen 组合函数：Scaffold(SmallTopAppBar + AnimatedContent + 悬浮NavigationBar)
+
+- [ ] **Step 1: 添加所需 import 语句**
+
+在当前 import 基础上，添加以下 import：
+```kotlin
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -7,54 +33,19 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawing
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.AutoStories
-import androidx.compose.material.icons.rounded.Bolt
-import androidx.compose.material.icons.rounded.Dashboard
-import androidx.compose.material.icons.rounded.FileUpload
-import androidx.compose.material.icons.rounded.Settings
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SmallTopAppBar
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.dp
-import androidx.navigation.NavType
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navArgument
-import com.java.myapplication.ui.screens.DashboardScreen
-import com.java.myapplication.ui.screens.ExportScreen
-import com.java.myapplication.ui.screens.ProjectScreen
-import com.java.myapplication.ui.screens.PromptsScreen
-import com.java.myapplication.ui.screens.ReaderScreen
-import com.java.myapplication.ui.screens.RewriteScreen
-import com.java.myapplication.ui.screens.SettingsScreen
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.draw.clip
+```
 
+- [ ] **Step 2: 将 MojiangApp 函数改为双层架构**
+
+用外层 NavHost 包裹，提取 MainScreen 组合函数：
+
+```kotlin
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MojiangApp() {
@@ -81,12 +72,13 @@ fun MojiangApp() {
         composable(AppDestination.Prompts.route) { PromptsScreen() }
     }
 }
+```
 
-@OptIn(ExperimentalMaterial3Api::class)
+- [ ] **Step 3: 实现 MainScreen 组合函数 - 顶栏 + 底栏**
+
+```kotlin
 @Composable
-private fun MainScreen(
-    onNavigateToReader: (Long) -> Unit
-) {
+fun MainScreen(onNavigateToReader: (Long) -> Unit) {
     var selectedTab by remember { mutableStateOf(AppDestination.Dashboard) }
 
     Box(
@@ -109,7 +101,6 @@ private fun MainScreen(
             topBar = {
                 SmallTopAppBar(
                     title = { Text("墨匠 Rewrite") },
-                    modifier = Modifier.height(48.dp),
                     colors = TopAppBarDefaults.smallTopAppBarColors(
                         containerColor = Color.Transparent
                     )
@@ -122,7 +113,7 @@ private fun MainScreen(
                         .navigationBarsPadding(),
                     containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
                     tonalElevation = 3.dp,
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(12.dp),
                 ) {
                     for (destination in bottomDestinations) {
                         val icon = when (destination) {
@@ -150,10 +141,12 @@ private fun MainScreen(
                 }
             }
         ) { innerPadding ->
+
             AnimatedContent(
                 targetState = selectedTab,
                 modifier = Modifier
                     .fillMaxSize()
+                    .windowInsetsPadding(WindowInsets.safeDrawing)
                     .padding(top = 6.dp)
                     .padding(innerPadding),
                 transitionSpec = {
@@ -162,14 +155,22 @@ private fun MainScreen(
                     val slideForward = targetIndex > currentIndex
 
                     if (slideForward) {
-                        slideInHorizontally(animationSpec = tween(300)) { fullWidth -> fullWidth } +
+                        slideInHorizontally(
+                            animationSpec = tween(300)
+                        ) { fullWidth -> fullWidth } +
                         fadeIn(animationSpec = tween(300)) togetherWith
-                        slideOutHorizontally(animationSpec = tween(300)) { fullWidth -> -fullWidth } +
+                        slideOutHorizontally(
+                            animationSpec = tween(300)
+                        ) { fullWidth -> -fullWidth } +
                         fadeOut(animationSpec = tween(300))
                     } else {
-                        slideInHorizontally(animationSpec = tween(300)) { fullWidth -> -fullWidth } +
+                        slideInHorizontally(
+                            animationSpec = tween(300)
+                        ) { fullWidth -> -fullWidth } +
                         fadeIn(animationSpec = tween(300)) togetherWith
-                        slideOutHorizontally(animationSpec = tween(300)) { fullWidth -> fullWidth } +
+                        slideOutHorizontally(
+                            animationSpec = tween(300)
+                        ) { fullWidth -> fullWidth } +
                         fadeOut(animationSpec = tween(300))
                     }
                 },
@@ -177,7 +178,9 @@ private fun MainScreen(
             ) { tab ->
                 when (tab) {
                     AppDestination.Dashboard -> DashboardScreen()
-                    AppDestination.Project -> ProjectScreen(onNavigateToReader = onNavigateToReader)
+                    AppDestination.Project -> ProjectScreen(
+                        onNavigateToReader = onNavigateToReader
+                    )
                     AppDestination.Rewrite -> RewriteScreen()
                     AppDestination.Export -> ExportScreen()
                     AppDestination.Settings -> SettingsScreen()
@@ -186,3 +189,122 @@ private fun MainScreen(
         }
     }
 }
+```
+
+- [ ] **Step 4: 验证编译**
+
+```bash
+cd D:/开发/Android开发/MojiangRewrite-main/MojiangRewrite-main
+./gradlew :app:compileDebugKotlin --no-daemon 2>&1 | tail -30
+```
+
+Expected: BUILD SUCCESSFUL（可能需要修复 import 和类型错误）
+
+- [ ] **Step 5: 提交**
+
+```bash
+git add app/src/main/java/com/java/myapplication/app/MojiangApp.kt
+git commit -m "refactor: MD3标准化 - 顶栏缩至48dp，底栏改圆角悬浮，AnimatedContent切换"
+```
+
+---
+
+### Task 2: ProjectScreen.kt - navController 改为回调
+
+**文件:** `app/src/main/java/com/java/myapplication/ui/screens/ProjectScreen.kt`
+
+因 MojiangApp 不再通过 NavHost 管理 Tab 路由，ProjectScreen 不再直接持有 NavController。改为接收 `onNavigateToReader` 回调函数。
+
+- [ ] **Step 1: 修改函数签名和 import**
+
+删除 `import androidx.navigation.NavController`，修改函数签名：
+
+```kotlin
+@Composable
+fun ProjectScreen(onNavigateToReader: (Long) -> Unit = {}) {
+```
+
+- [ ] **Step 2: 修改导航调用**
+
+将：
+```kotlin
+onClick = {
+    navController?.navigate(AppDestination.Reader.createRoute(chapter.id))
+}
+```
+改为：
+```kotlin
+onClick = {
+    onNavigateToReader(chapter.id)
+}
+```
+
+完整改动后文件关键部分：
+```kotlin
+package com.java.myapplication.ui.screens
+
+// 删除: import androidx.navigation.NavController
+// 其他 imports 保持不变
+
+@Composable
+fun ProjectScreen(onNavigateToReader: (Long) -> Unit = {}) {
+    val activeNovel = LocalNovelStore.activeNovel
+
+    LazyColumn(
+        modifier = Modifier.padding(horizontal = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        activeNovel?.let { novel ->
+            // ... 保持现有代码不变 ...
+            items(novel.chapters) { chapter ->
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    onClick = {
+                        onNavigateToReader(chapter.id)  // 改动点
+                    }
+                ) {
+                    // ... 保持现有代码不变 ...
+                }
+            }
+        }
+    }
+}
+```
+
+- [ ] **Step 3: 验证编译**
+
+```bash
+cd D:/开发/Android开发/MojiangRewrite-main/MojiangRewrite-main
+./gradlew :app:compileDebugKotlin --no-daemon 2>&1 | tail -30
+```
+
+Expected: BUILD SUCCESSFUL
+
+- [ ] **Step 4: 提交**
+
+```bash
+git add app/src/main/java/com/java/myapplication/ui/screens/ProjectScreen.kt
+git commit -m "refactor: ProjectScreen navController改为onNavigateToReader回调"
+```
+
+---
+
+### Task 3: 构建验证
+
+- [ ] **Step 1: 完整构建**
+
+```bash
+cd D:/开发/Android开发/MojiangRewrite-main/MojiangRewrite-main
+./gradlew assembleDebug --no-daemon 2>&1 | tail -50
+```
+
+Expected: BUILD SUCCESSFUL，生成 APK
+
+- [ ] **Step 2: 检查代码中不再有废弃 import**
+
+```bash
+cd D:/开发/Android开发/MojiangRewrite-main/MojiangRewrite-main
+grep -rn "import androidx.navigation.NavController" app/src/main/java/ 2>/dev/null || echo "OK: 无残留 NavController 引用"
+```
+
+Expected: ProjectScreen.kt 不再引用 NavController

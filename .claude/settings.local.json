@@ -21,11 +21,12 @@
       "Bash(ls gradlew*)",
       "Bash(ls app/build.gradle*)",
       "Bash(ls build.gradle*)",
-      "Bash(git branch *)"
+      "Bash(git branch *)",
+      "Bash(bash start-server.sh --project-dir \"D:\\\\开发\\\\Android开发\\\\MojiangRewrite-main\\\\MojiangRewrite-main\")"
     ]
   },
   "statusLine": {
     "type": "command",
-    "command": "input=$(cat); echo \"$(echo \"$input\" | jq -r '.model.display_name') in $(echo \"$input\" | jq -r '.workspace.current_dir')\""
+    "command": "bash \"$HOME/.claude/statusline-tokens.sh\""
   }
 }

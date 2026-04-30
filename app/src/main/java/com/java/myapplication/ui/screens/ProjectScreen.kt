@@ -19,14 +19,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavController
-import com.java.myapplication.app.AppDestination
 import com.java.myapplication.data.LocalNovelStore
 import com.java.myapplication.ui.components.DotBadge
 import com.java.myapplication.ui.components.SectionTitle
 
 @Composable
-fun ProjectScreen(navController: NavController? = null) {
+fun ProjectScreen(onNavigateToReader: (Long) -> Unit = {}) {
     val activeNovel = LocalNovelStore.activeNovel
 
     LazyColumn(
@@ -51,7 +49,7 @@ fun ProjectScreen(navController: NavController? = null) {
                 Card(
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                     onClick = {
-                        navController?.navigate(AppDestination.Reader.createRoute(chapter.id))
+                        onNavigateToReader(chapter.id)
                     }
                 ) {
                     Row(

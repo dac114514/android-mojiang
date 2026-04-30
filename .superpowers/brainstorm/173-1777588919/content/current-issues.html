@@ -1,0 +1,85 @@
+<h2>问题分析与 Material Design 3 标准化</h2>
+<p class="subtitle">当前 UI 存在的两个主要问题</p>
+
+<div class="split" style="margin-top: 24px;">
+  <div class="mockup">
+    <div class="mockup-header">问题 1：顶部标题栏</div>
+    <div class="mockup-body" style="padding: 16px;">
+      <div style="background: rgba(255,255,255,0.05); border-radius: 12px; overflow: hidden;">
+        <div style="background: rgba(255,255,255,0.1); padding: 12px 16px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1);">
+          <div style="font-weight: 600; font-size: 18px;">墨匠 Rewrite</div>
+        </div>
+        <div style="padding: 16px;">
+          <div style="color: rgba(255,255,255,0.6); font-size: 12px;">↓ 标题下方大片空白</div>
+          <div style="height: 24px;"></div>
+          <div style="color: rgba(255,255,255,0.3); font-size: 11px;">实际 CenterAlignedTopAppBar 默认高度 ~64dp，</div>
+          <div style="color: rgba(255,255,255,0.3); font-size: 11px;">但 MD3 标准 SmallTopAppBar 仅 ~48dp</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mockup">
+    <div class="mockup-header">问题 2：底部导航栏</div>
+    <div class="mockup-body" style="padding: 16px;">
+      <div style="background: rgba(255,255,255,0.05); border-radius: 12px; overflow: hidden; min-height: 200px; display: flex; flex-direction: column; justify-content: flex-end;">
+        <div style="background: rgba(255,255,255,0.1); margin: 8px; border-radius: 8px; padding: 8px;">
+          <div style="display: flex; justify-content: space-around;">
+            <div style="text-align: center; font-size: 10px; padding: 4px;">
+              <div style="width: 20px; height: 20px; background: rgba(255,255,255,0.2); border-radius: 50%; margin: 0 auto 4px;"></div>
+              <span>概览</span>
+            </div>
+            <div style="text-align: center; font-size: 10px; padding: 4px;">
+              <div style="width: 20px; height: 20px; background: rgba(255,255,255,0.2); border-radius: 50%; margin: 0 auto 4px;"></div>
+              <span>项目</span>
+            </div>
+            <div style="text-align: center; font-size: 10px; padding: 4px;">
+              <div style="width: 20px; height: 20px; background: rgba(255,255,255,0.2); border-radius: 50%; margin: 0 auto 4px;"></div>
+              <span>加料</span>
+            </div>
+            <div style="text-align: center; font-size: 10px; padding: 4px;">
+              <div style="width: 20px; height: 20px; background: rgba(255,255,255,0.2); border-radius: 50%; margin: 0 auto 4px;"></div>
+              <span>导出</span>
+            </div>
+            <div style="text-align: center; font-size: 10px; padding: 4px;">
+              <div style="width: 20px; height: 20px; background: rgba(255,255,255,0.2); border-radius: 50%; margin: 0 auto 4px;"></div>
+              <span>设置</span>
+            </div>
+          </div>
+        </div>
+        <div style="color: rgba(255,255,255,0.6); font-size: 12px; background: rgba(255, 100, 100, 0.1); border-top: 1px solid rgba(255,100,100,0.2); padding: 8px; text-align: center;">
+          ⚠️ 外部 Box 包裹 + padding + navigationBarsPadding<br>
+          导致弹出键盘时导航栏上跳
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>修改目标</h3>
+  <div class="cards" style="margin-top: 8px;">
+    <div class="card" onclick="toggleSelect(this)" data-choice="agree">
+      <div class="card-body">
+        <h3>1. 顶部栏 → MD3 SmallTopAppBar（48dp）</h3>
+        <p>从 CenterAlignedTopAppBar 改为标准的 SmallTopAppBar，高度缩小到正常 MD3 规范值，去除多余空白</p>
+      </div>
+    </div>
+    <div class="card" onclick="toggleSelect(this)" data-choice="agree">
+      <div class="card-body">
+        <h3>2. 底部栏 → 标准 NavigationBar（无外层 Box）</h3>
+        <p>移除包裹 NavigationBar 的 Box + padding，直接用标准 NavigationBar。解决键盘弹出时上跳的问题。</p>
+      </div>
+    </div>
+    <div class="card" onclick="toggleSelect(this)" data-choice="agree">
+      <div class="card-body">
+        <h3>3. 底部 Tab 切换 → 滑动动画</h3>
+        <p>NavHost 切换时使用 HorizontalSlide 动画（向左/向右滑动）</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <p class="subtitle">以上是否符合你的期望？如果有不同的想法，请在终端告诉我。</p>
+</div>

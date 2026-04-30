@@ -1,0 +1,54 @@
+<h2>方案 B：AnimatedContent 架构</h2>
+<p class="subtitle">Tab 切换使用 AnimatedContent 驱动滑动动画</p>
+
+<div class="mockup" style="margin-top: 16px;">
+  <div class="mockup-header">新的组件结构</div>
+  <div class="mockup-body" style="padding: 24px; font-family: monospace; font-size: 13px; line-height: 1.8;">
+Scaffold
+├── SmallTopAppBar ("墨匠 Rewrite")
+│
+├── 内容区域:
+│   ├── <span style="color: #4fc3f7;">AnimatedContent ← 5个Tab页面</span>
+│   │   ├── DashboardScreen  (概览)
+│   │   ├── ProjectScreen    (项目)
+│   │   ├── RewriteScreen    (加料)
+│   │   ├── ExportScreen     (导出)
+│   │   └── SettingsScreen   (设置)
+│   │
+│   └── <span style="color: #ce93d8;">NavHost ← 非Tab路由</span>
+│       ├── PromptsScreen    (提示词，从加料页进入)
+│       └── ReaderScreen     (阅读器，从项目页进入)
+│
+└── <span style="color: #81c784;">NavigationBar (圆角悬浮半透明)</span>
+  </div>
+</div>
+
+<div class="cards" style="margin-top: 16px;">
+  <div class="card" onclick="toggleSelect(this)" data-choice="b">
+    <div class="card-body">
+      <h3>AnimatedContent 驱动 Tab 切换</h3>
+      <p>selectedTab 状态控制显示哪个页面，根据 Tab 位置计算滑动方向。</p>
+    </div>
+  </div>
+  <div class="card" onclick="toggleSelect(this)" data-choice="b">
+    <div class="card-body">
+      <h3>NavHost 仅用于阅读器和提示词</h3>
+      <p>进入阅读器时 AnimatedContent 区域隐藏，显示 NavHost 的页面。</p>
+    </div>
+  </div>
+  <div class="card" onclick="toggleSelect(this)" data-choice="b">
+    <div class="card-body">
+      <h3>进入非Tab页面时底部栏自动隐藏</h3>
+      <p>阅读器有独立的 Scaffold（顶部/底部控制栏），不受影响。</p>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 24px;">
+  <h3>滑动方向规则</h3>
+  <p>根据目标 Tab 在 bottomDestinations 列表中的位置索引决定：</p>
+  <ul>
+    <li><strong>概览 (0) → 项目 (1)</strong>：新内容从<strong>右</strong>侧滑入</li>
+    <li><strong>设置 (4) → 导出 (3)</strong>：新内容从<strong>左</strong>侧滑入</li>
+  </ul>
+</div>

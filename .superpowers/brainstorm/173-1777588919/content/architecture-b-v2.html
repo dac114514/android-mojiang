@@ -1,0 +1,38 @@
+<h2>方案 B 修正：阅读器独立框架</h2>
+<p class="subtitle">阅读器不嵌套在主框架内，完全独立</p>
+
+<div class="mockup" style="margin-top: 16px;">
+  <div class="mockup-header">新的两级导航结构</div>
+  <div class="mockup-body" style="padding: 24px; font-family: monospace; font-size: 13px; line-height: 1.8;">
+<span style="color: #ffb74d;">顶层路由（控制显示主界面还是阅读器）</span>
+├── <span style="color: #81c784;">"main" → Scaffold 主框架</span>
+│   ├── SmallTopAppBar
+│   ├── AnimatedContent (5个Tab页面)
+│   └── NavigationBar (悬浮圆角)
+│
+└── <span style="color: #ce93d8;">"reader/{chapterId}" → 全屏独立</span>
+    └── ReaderScreen（完全自控，已有的 Scaffold 保持不变）
+  </div>
+</div>
+
+<h3>核心改动</h3>
+<div class="cards">
+  <div class="card">
+    <div class="card-body">
+      <h3>顶层添加一层路由判断</h3>
+      <p>用一个 state 或 NavHost 控制显示"主界面"还是"阅读器"。一旦进入阅读器，主框架（顶栏+底栏+Tab内容）全部不可见。</p>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-body">
+      <h3>阅读器保持现有实现不变</h3>
+      <p>ReaderScreen 已有的 Scaffold（带返回按钮、上下章控制）完全保留，不受影响。</p>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-body">
+      <h3>从项目页点击章节 → 跳转到阅读器</h3>
+      <p>ProjectScreen 的 navController.navigate(reader/{chapterId}) 导向顶层路由，切换整个界面。</p>
+    </div>
+  </div>
+</div>
