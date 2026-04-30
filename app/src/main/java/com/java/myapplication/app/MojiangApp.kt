@@ -124,7 +124,8 @@ private fun MainScreen(
             bottomBar = {
                 NavigationBar(
                     modifier = Modifier
-                        .padding(horizontal = 16.dp, bottom = 8.dp)
+                        .padding(horizontal = 16.dp)
+                        .padding(bottom = 8.dp)
                         .navigationBarsPadding()
                         .clip(RoundedCornerShape(12.dp)),
                     containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
