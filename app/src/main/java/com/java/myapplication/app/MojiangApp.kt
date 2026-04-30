@@ -34,9 +34,10 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
 import com.java.myapplication.ui.screens.DashboardScreen
 import com.java.myapplication.ui.screens.ExportScreen
-import com.java.myapplication.ui.screens.ModelsScreen
 import com.java.myapplication.ui.screens.ProjectScreen
 import com.java.myapplication.ui.screens.PromptsScreen
 import com.java.myapplication.ui.screens.RewriteScreen
@@ -84,10 +85,9 @@ fun MojiangApp() {
                                 AppDestination.Dashboard -> Icons.Rounded.Dashboard
                                 AppDestination.Project -> Icons.Rounded.AutoStories
                                 AppDestination.Rewrite -> Icons.Rounded.Bolt
-                                AppDestination.Models -> Icons.Rounded.Psychology
                                 AppDestination.Export -> Icons.Rounded.FileUpload
-                                AppDestination.Prompts -> Icons.Rounded.Psychology
                                 AppDestination.Settings -> Icons.Rounded.Settings
+                                else -> Icons.Rounded.Dashboard
                             }
                             NavigationBarItem(
                                 selected = currentRoute == destination.route,
@@ -120,10 +120,16 @@ fun MojiangApp() {
                 composable(AppDestination.Dashboard.route) { DashboardScreen() }
                 composable(AppDestination.Project.route) { ProjectScreen() }
                 composable(AppDestination.Rewrite.route) { RewriteScreen() }
-                composable(AppDestination.Models.route) { ModelsScreen() }
                 composable(AppDestination.Prompts.route) { PromptsScreen() }
                 composable(AppDestination.Export.route) { ExportScreen() }
                 composable(AppDestination.Settings.route) { SettingsScreen() }
+                composable(
+                    route = AppDestination.Reader.route,
+                    arguments = listOf(navArgument("chapterId") { type = NavType.LongType })
+                ) { backStackEntry ->
+                    val chapterId = backStackEntry.arguments?.getLong("chapterId") ?: return@composable
+                    // TODO: Replace with ReaderScreen(chapterId = chapterId, navController = navController) after ReaderScreen.kt is created
+                }
             }
         }
     }
