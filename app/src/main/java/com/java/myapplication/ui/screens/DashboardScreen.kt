@@ -9,7 +9,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.java.myapplication.data.LocalNovelStore
-import com.java.myapplication.ui.components.GradientHeroCard
 import com.java.myapplication.ui.components.MetricCard
 import com.java.myapplication.ui.components.SectionTitle
 import com.java.myapplication.ui.model.DashboardStat
@@ -36,14 +35,7 @@ fun DashboardScreen() {
         modifier = Modifier.padding(horizontal = 20.dp),
         verticalArrangement = Arrangement.spacedBy(18.dp)
     ) {
-        item {
-            GradientHeroCard(
-                title = "墨匠 Rewrite",
-                subtitle = "长篇小说改写与加料工作台",
-                footnote = LocalNovelStore.statusMessage.value
-            )
-        }
-        item { SectionTitle("工作概览", "真实读取本地项目、章节、模型和导出状态。") }
+        item { SectionTitle("工作概览") }
         items(stats.indices.toList()) { index ->
             MetricCard(
                 title = stats[index].title,
