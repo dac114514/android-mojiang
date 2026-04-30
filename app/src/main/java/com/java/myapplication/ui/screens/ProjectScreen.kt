@@ -6,20 +6,21 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.ChevronRight
+import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -30,29 +31,36 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.java.myapplication.data.ChapterData
+import androidx.navigation.NavController
+import com.java.myapplication.app.AppDestination
 import com.java.myapplication.data.LocalNovelStore
 import com.java.myapplication.ui.components.DotBadge
 import com.java.myapplication.ui.components.SectionTitle
 
 @Composable
-fun ProjectScreen() {
+fun ProjectScreen(navController: NavController? = null) {
     val context = LocalContext.current
     val novels = LocalNovelStore.novels
     val activeNovel = LocalNovelStore.activeNovel
-    val status = LocalNovelStore.statusMessage.value
-    var selectedChapter by remember { mutableStateOf<ChapterData?>(null) }
-    var showRewritten by remember { mutableStateOf(false) }
+    var searchQuery by remember { mutableStateOf("") }
 
     val filePicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         uri?.let { LocalNovelStore.importTxt(context, it) }
+    }
+
+    val filteredChapters = remember(activeNovel, searchQuery) {
+        activeNovel?.chapters?.filter { chapter ->
+            searchQuery.isBlank() ||
+            chapter.title.contains(searchQuery, ignoreCase = true) ||
+            chapter.index.toString().contains(searchQuery)
+        }.orEmpty()
     }
 
     LazyColumn(
         modifier = Modifier.padding(horizontal = 20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        item { SectionTitle("项目工作台", "导入 TXT 后自动分章，点击章节可查看原文和加料后内容。") }
+        item { SectionTitle("项目工作台", "导入 TXT 后自动分章，点击章节可跳转阅读器查看内容。") }
         item {
             Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
                 Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -61,10 +69,8 @@ fun ProjectScreen() {
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold
                     )
-                    Text(status, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Button(onClick = { filePicker.launch("*/*") }) { Text("导入 TXT") }
-                        OutlinedButton(onClick = { LocalNovelStore.statusMessage.value = "已自动分章，章节列表见下方" }) { Text("自动分章") }
                     }
                     activeNovel?.let {
                         Text("共 ${it.chapters.size} 章 · ${it.chapters.sumOf { c -> c.wordCount }} 字", color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -93,72 +99,48 @@ fun ProjectScreen() {
             }
         }
         activeNovel?.let { novel ->
-            item { SectionTitle("章节列表", "点击章节查看内容；已加料章节可切换查看改写结果。") }
-            items(novel.chapters) { chapter ->
+            item { SectionTitle("章节列表", "搜索或筛选章节，点击跳转阅读器。") }
+            item {
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = "搜索") },
+                    placeholder = { Text("按章节标题或编号筛选") },
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp)
+                )
+            }
+            items(filteredChapters) { chapter ->
                 Card(
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                     onClick = {
-                        selectedChapter = chapter
-                        showRewritten = chapter.rewrittenContent.isNotBlank()
+                        navController?.navigate(AppDestination.Reader.createRoute(chapter.id))
                     }
                 ) {
                     Row(
-                        modifier = Modifier.fillMaxWidth().padding(18.dp),
+                        modifier = Modifier.fillMaxWidth().padding(16.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Column(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.weight(1f)) {
+                        Column(modifier = Modifier.weight(1f)) {
                             Text("第 ${chapter.index} 章 · ${chapter.title}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                             Text("${chapter.wordCount} 字", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                OutlinedButton(onClick = {
-                                    selectedChapter = chapter
-                                    showRewritten = false
-                                }) { Text("看原文") }
-                                OutlinedButton(
-                                    onClick = {
-                                        selectedChapter = chapter
-                                        showRewritten = true
-                                    },
-                                    enabled = chapter.rewrittenContent.isNotBlank()
-                                ) { Text("看加料后") }
-                                OutlinedButton(
-                                    onClick = { LocalNovelStore.clearRewrite(chapter.id) },
-                                    enabled = chapter.rewrittenContent.isNotBlank()
-                                ) { Text("清空结果") }
-                            }
                         }
-                        DotBadge(
-                            text = chapter.status,
-                            color = if (chapter.status == "已加料") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            DotBadge(
+                                text = chapter.status,
+                                color = if (chapter.status == "已加料") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary
+                            )
+                            Icon(
+                                Icons.Rounded.ChevronRight,
+                                contentDescription = "阅读",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                 }
             }
         }
-    }
-
-    selectedChapter?.let { chapter ->
-        AlertDialog(
-            onDismissRequest = { selectedChapter = null },
-            title = { Text("第 ${chapter.index} 章 · ${chapter.title}") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedButton(onClick = { showRewritten = false }) { Text("原文") }
-                        OutlinedButton(
-                            onClick = { showRewritten = true },
-                            enabled = chapter.rewrittenContent.isNotBlank()
-                        ) { Text("加料后") }
-                    }
-                    Text(
-                        text = if (showRewritten && chapter.rewrittenContent.isNotBlank()) chapter.rewrittenContent else chapter.originalContent,
-                        modifier = Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState()),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
-            },
-            confirmButton = { TextButton(onClick = { selectedChapter = null }) { Text("关闭") } }
-        )
     }
 }

@@ -12,7 +12,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -57,21 +56,7 @@ fun ExportScreen() {
                         onEndChange = { endChapter = it.filter(Char::isDigit) }
                     )
                     Text("当前导出范围：$rangeSummary", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                        DotBadge("合并导出", MaterialTheme.colorScheme.primary)
-                        DotBadge("UTF-8", MaterialTheme.colorScheme.secondary)
-                        DotBadge(if (LocalNovelStore.preferRewrittenExport.value) "优先加料后" else "优先原文", MaterialTheme.colorScheme.tertiary)
-                    }
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        Text("优先导出加料后内容")
-                        Switch(
-                            checked = LocalNovelStore.preferRewrittenExport.value,
-                            onCheckedChange = {
-                                LocalNovelStore.preferRewrittenExport.value = it
-                                LocalNovelStore.saveQuietly()
-                            }
-                        )
-                    }
+                    Text("默认导出加料后内容；未加料章节自动回退原文。", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
                         Button(
                             onClick = {

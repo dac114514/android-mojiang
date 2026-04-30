@@ -57,6 +57,7 @@ import com.java.myapplication.ui.screens.DashboardScreen
 import com.java.myapplication.ui.screens.ExportScreen
 import com.java.myapplication.ui.screens.ProjectScreen
 import com.java.myapplication.ui.screens.PromptsScreen
+import com.java.myapplication.ui.screens.ReaderScreen
 import com.java.myapplication.ui.screens.RewriteScreen
 import com.java.myapplication.ui.screens.SettingsScreen
 
@@ -193,7 +194,7 @@ fun MojiangApp() {
                     .padding(innerPadding)
             ) {
                 composable(AppDestination.Dashboard.route) { DashboardScreen() }
-                composable(AppDestination.Project.route) { ProjectScreen() }
+                composable(AppDestination.Project.route) { ProjectScreen(navController = navController) }
                 composable(AppDestination.Rewrite.route) { RewriteScreen() }
                 composable(AppDestination.Prompts.route) { PromptsScreen() }
                 composable(AppDestination.Export.route) { ExportScreen() }
@@ -203,7 +204,7 @@ fun MojiangApp() {
                     arguments = listOf(navArgument("chapterId") { type = NavType.LongType })
                 ) { backStackEntry ->
                     val chapterId = backStackEntry.arguments?.getLong("chapterId") ?: return@composable
-                    // TODO: Replace with ReaderScreen(chapterId = chapterId, navController = navController) after ReaderScreen.kt is created
+                    ReaderScreen(chapterId = chapterId, navController = navController)
                 }
             }
         }
