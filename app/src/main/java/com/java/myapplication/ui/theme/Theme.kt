@@ -9,6 +9,14 @@ import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
+
+object CardElevation {
+    val level0 get() = 0.dp
+    val level1 get() = 2.dp
+    val level2 get() = 6.dp
+    val level3 get() = 12.dp
+}
 
 private val DarkColorScheme = darkColorScheme(
     primary = InkPrimaryDark,

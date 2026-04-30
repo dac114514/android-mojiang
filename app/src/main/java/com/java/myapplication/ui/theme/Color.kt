@@ -21,3 +21,10 @@ val InkSurfaceDark = Color(0xFF20232D)
 val InkSurfaceVariantDark = Color(0xFF2A2F3B)
 val InkTextDark = Color(0xFFF5F7FB)
 val InkSubtleTextDark = Color(0xFFC0C6D4)
+
+object InkColors {
+    val success get() = Color(0xFF20C997)
+    val warning get() = Color(0xFFFFB020)
+    val error get() = Color(0xFFE74C3C)
+    val accent get() = Color(0xFFFF7D5C)
+}
