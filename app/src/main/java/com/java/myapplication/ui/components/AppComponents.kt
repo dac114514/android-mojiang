@@ -22,6 +22,10 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Surface
+import com.java.myapplication.ui.theme.CardElevation
 
 @Composable
 fun GradientHeroCard(
@@ -33,7 +37,8 @@ fun GradientHeroCard(
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.Transparent)
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+        elevation = CardDefaults.cardElevation(defaultElevation = CardElevation.level2)
     ) {
         Box(
             modifier = Modifier
@@ -45,7 +50,7 @@ fun GradientHeroCard(
                         )
                     )
                 )
-                .padding(24.dp)
+                .padding(28.dp)
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(
@@ -74,6 +79,83 @@ fun SectionTitle(title: String, subtitle: String) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
         Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+@Composable
+fun MetricCard(
+    title: String,
+    value: String,
+    caption: String,
+    accentColor: Color = MaterialTheme.colorScheme.primary,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = CardElevation.level1)
+    ) {
+        Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(title, style = MaterialTheme.typography.titleMedium)
+            Text(
+                value,
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                color = accentColor
+            )
+            Text(
+                caption,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+enum class StatusType { SUCCESS, WARNING, ERROR, INFO }
+
+@Composable
+fun StatusBadge(text: String, type: StatusType = StatusType.INFO) {
+    val (bgColor, textColor) = when (type) {
+        StatusType.SUCCESS -> MaterialTheme.colorScheme.primary to MaterialTheme.colorScheme.onPrimary
+        StatusType.WARNING -> MaterialTheme.colorScheme.tertiary to MaterialTheme.colorScheme.onPrimary
+        StatusType.ERROR -> Color(0xFFE74C3C) to Color.White
+        StatusType.INFO -> MaterialTheme.colorScheme.surfaceVariant to MaterialTheme.colorScheme.onSurfaceVariant
+    }
+    Surface(
+        shape = RoundedCornerShape(100.dp),
+        color = bgColor
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelSmall,
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+            color = textColor
+        )
+    }
+}
+
+@Composable
+fun LoadingOverlay(isLoading: Boolean, message: String = "处理中…") {
+    if (isLoading) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Card(
+                elevation = CardDefaults.cardElevation(defaultElevation = CardElevation.level2),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    CircularProgressIndicator()
+                    Text(message, style = MaterialTheme.typography.bodyMedium)
+                }
+            }
+        }
     }
 }
 
