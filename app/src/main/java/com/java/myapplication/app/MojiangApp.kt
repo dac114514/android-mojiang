@@ -1,33 +1,24 @@
 package com.java.myapplication.app
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AutoStories
 import androidx.compose.material.icons.rounded.Bolt
 import androidx.compose.material.icons.rounded.Dashboard
 import androidx.compose.material.icons.rounded.FileUpload
-import androidx.compose.material.icons.rounded.Psychology
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -36,14 +27,11 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -51,8 +39,6 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
-import com.java.myapplication.data.LocalNovelStore
-import com.java.myapplication.ui.theme.CardElevation
 import com.java.myapplication.ui.screens.DashboardScreen
 import com.java.myapplication.ui.screens.ExportScreen
 import com.java.myapplication.ui.screens.ProjectScreen
@@ -67,10 +53,6 @@ fun MojiangApp() {
     val navController = rememberNavController()
     val backStack = navController.currentBackStackEntryAsState()
     val currentRoute = backStack.value?.destination?.route
-
-    val totalChapters by remember { derivedStateOf { LocalNovelStore.novels.sumOf { it.chapters.size } } }
-    val rewrittenChapters by remember { derivedStateOf { LocalNovelStore.novels.sumOf { it.chapters.count { c -> c.rewrittenContent.isNotBlank() } } } }
-    val progress by remember { derivedStateOf { if (totalChapters > 0) rewrittenChapters.toFloat() / totalChapters else 0f } }
 
     Box(
         modifier = Modifier
@@ -90,49 +72,12 @@ fun MojiangApp() {
             contentColor = MaterialTheme.colorScheme.onBackground,
             contentWindowInsets = WindowInsets.safeDrawing,
             topBar = {
-                Column {
-                    CenterAlignedTopAppBar(
-                        title = { Text("墨匠 Rewrite") },
-                        colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                            containerColor = Color.Transparent
-                        )
+                CenterAlignedTopAppBar(
+                    title = { Text("墨匠 Rewrite") },
+                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                        containerColor = Color.Transparent
                     )
-                    if (totalChapters > 0) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 20.dp)
-                                .padding(bottom = 4.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Text(
-                                    text = "改写进度：$rewrittenChapters / $totalChapters 章",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Text(
-                                    text = "${(progress * 100).toInt()}%",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                            Spacer(modifier = Modifier.height(4.dp))
-                            LinearProgressIndicator(
-                                progress = { progress },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(4.dp)
-                                    .clip(RoundedCornerShape(2.dp)),
-                                color = MaterialTheme.colorScheme.primary,
-                                trackColor = MaterialTheme.colorScheme.surfaceVariant,
-                            )
-                        }
-                    }
-                }
+                )
             },
             bottomBar = {
                 Box(
@@ -142,12 +87,8 @@ fun MojiangApp() {
                         .padding(horizontal = 20.dp, vertical = 8.dp)
                 ) {
                     NavigationBar(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(68.dp)
-                            .clip(RoundedCornerShape(34.dp)),
+                        modifier = Modifier.fillMaxWidth(),
                         containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
-                        tonalElevation = CardElevation.level2
                     ) {
                         for (destination in bottomDestinations) {
                             val icon = when (destination) {
