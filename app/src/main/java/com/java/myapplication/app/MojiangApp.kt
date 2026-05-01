@@ -11,7 +11,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -37,7 +36,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
@@ -55,6 +53,20 @@ import com.java.myapplication.ui.screens.PromptsScreen
 import com.java.myapplication.ui.screens.ReaderScreen
 import com.java.myapplication.ui.screens.RewriteScreen
 import com.java.myapplication.ui.screens.SettingsScreen
+import com.java.myapplication.data.LocalNovelStore
+import com.java.myapplication.data.NovelProject
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.IconButton
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.ArrowDropDown
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.foundation.layout.RowScope
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -90,6 +102,13 @@ private fun MainScreen(
 ) {
     var selectedTab: AppDestination by remember { mutableStateOf(AppDestination.Dashboard) }
 
+    val context = LocalContext.current
+    val importLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        uri?.let { LocalNovelStore.importTxt(context, it) }
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -108,18 +127,23 @@ private fun MainScreen(
             contentColor = MaterialTheme.colorScheme.onBackground,
             contentWindowInsets = WindowInsets.safeDrawing,
             topBar = {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp)
-                        .padding(horizontal = 16.dp),
-                    contentAlignment = Alignment.CenterStart
-                ) {
-                    Text(
-                        text = "墨匠 Rewrite",
-                        style = MaterialTheme.typography.titleLarge
-                    )
-                }
+                TopAppBar(
+                    title = { Text("墨匠 Rewrite") },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color.Transparent
+                    ),
+                    windowInsets = TopAppBarDefaults.windowInsets,
+                    actions = {
+                        if (selectedTab == AppDestination.Project) {
+                            ProjectTopAppBarActions(
+                                novels = LocalNovelStore.novels,
+                                activeNovelId = LocalNovelStore.activeNovelId.value,
+                                onSelectNovel = { LocalNovelStore.selectNovel(it) },
+                                onImportTxt = { importLauncher.launch(arrayOf("text/plain")) }
+                            )
+                        }
+                    }
+                )
             },
             bottomBar = {
                 NavigationBar(
@@ -184,7 +208,10 @@ private fun MainScreen(
             ) { tab ->
                 when (tab) {
                     AppDestination.Dashboard -> DashboardScreen()
-                    AppDestination.Project -> ProjectScreen(onNavigateToReader = onNavigateToReader)
+                    AppDestination.Project -> ProjectScreen(
+                        onNavigateToReader = onNavigateToReader,
+                        onImportTxt = { importLauncher.launch(arrayOf("text/plain")) }
+                    )
                     AppDestination.Rewrite -> RewriteScreen()
                     AppDestination.Export -> ExportScreen()
                     AppDestination.Settings -> SettingsScreen()
@@ -192,5 +219,54 @@ private fun MainScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun RowScope.ProjectTopAppBarActions(
+    novels: List<NovelProject>,
+    activeNovelId: Long?,
+    onSelectNovel: (Long) -> Unit,
+    onImportTxt: () -> Unit
+) {
+    val activeNovel = novels.firstOrNull { it.id == activeNovelId }
+
+    if (novels.isNotEmpty()) {
+        var expanded by remember { mutableStateOf(false) }
+        Box {
+            OutlinedButton(
+                onClick = { expanded = true },
+                modifier = Modifier.height(32.dp)
+            ) {
+                Text(
+                    activeNovel?.title ?: "选择项目",
+                    style = MaterialTheme.typography.labelMedium,
+                    maxLines = 1
+                )
+                Icon(
+                    Icons.Rounded.ArrowDropDown,
+                    contentDescription = "切换项目",
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false }
+            ) {
+                novels.forEach { novel ->
+                    DropdownMenuItem(
+                        text = { Text(novel.title) },
+                        onClick = {
+                            onSelectNovel(novel.id)
+                            expanded = false
+                        }
+                    )
+                }
+            }
+        }
+    }
+
+    IconButton(onClick = onImportTxt) {
+        Icon(Icons.Rounded.Add, contentDescription = "导入 TXT")
     }
 }
