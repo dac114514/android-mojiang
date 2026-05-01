@@ -22,7 +22,9 @@
       "Bash(ls app/build.gradle*)",
       "Bash(ls build.gradle*)",
       "Bash(git branch *)",
-      "Bash(bash start-server.sh --project-dir \"D:\\\\开发\\\\Android开发\\\\MojiangRewrite-main\\\\MojiangRewrite-main\")"
+      "Bash(bash start-server.sh --project-dir \"D:\\\\开发\\\\Android开发\\\\MojiangRewrite-main\\\\MojiangRewrite-main\")",
+      "Bash(ls -la docs/)",
+      "Bash(ls -la docs/superpowers/specs/)"
     ]
   },
   "statusLine": {
