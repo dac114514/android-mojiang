@@ -3,6 +3,7 @@ package com.java.myapplication.worker
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
@@ -72,7 +73,7 @@ class RewriteForegroundService : Service() {
         LocalNovelStore.init(this)
 
         val total = LocalNovelStore.queuedJobs() + LocalNovelStore.completedJobs()
-        startForeground(NOTIFICATION_ID, buildProgressNotification(0, total))
+        startForeground(NOTIFICATION_ID, buildProgressNotification(0, total, ""))
 
         thread {
             runCatching {
@@ -80,7 +81,8 @@ class RewriteForegroundService : Service() {
                     val hasMore = LocalNovelStore.processNextRewriteBatch(maxItems = 1)
                     val completed = LocalNovelStore.completedJobs()
                     val totalJobs = completed + LocalNovelStore.queuedJobs()
-                    updateProgressNotification(completed, totalJobs)
+                    val detail = LocalNovelStore.currentProcessingTitle.value
+                    updateProgressNotification(completed, totalJobs, detail)
 
                     if (!hasMore) break
                 }
@@ -112,22 +114,35 @@ class RewriteForegroundService : Service() {
         }
     }
 
-    private fun buildProgressNotification(current: Int, total: Int): Notification {
+    private fun buildProgressNotification(current: Int, total: Int, detail: String): Notification {
         val max = total.coerceAtLeast(1)
         val progress = current.coerceAtMost(max)
-        val text = if (total > 0) "改写进度：$current / $total 章" else "正在准备改写任务…"
+        val text = when {
+            detail.isNotBlank() -> detail
+            total > 0 -> "改写进度：$current / $total 章"
+            else -> "正在准备改写任务…"
+        }
+        val cancelIntent = Intent(this, RewriteForegroundService::class.java).apply {
+            action = ACTION_CANCEL
+        }
+        val cancelPendingIntent = PendingIntent.getService(
+            this, 0, cancelIntent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("墨匠 Rewrite")
             .setContentText(text)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(text))
             .setSmallIcon(android.R.drawable.ic_menu_edit)
             .setProgress(max, progress, false)
             .setOngoing(true)
             .setSilent(true)
+            .addAction(android.R.drawable.ic_menu_close_clear_cancel, "取消", cancelPendingIntent)
             .build()
     }
 
-    private fun updateProgressNotification(current: Int, total: Int) {
-        val notification = buildProgressNotification(current, total)
+    private fun updateProgressNotification(current: Int, total: Int, detail: String) {
+        val notification = buildProgressNotification(current, total, detail)
         notificationManager.notify(NOTIFICATION_ID, notification)
     }
 

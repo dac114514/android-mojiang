@@ -35,6 +35,7 @@ object LocalNovelStore {
     val exportRecords = mutableStateListOf<ExportRecordData>()
     val rewriteQueue = mutableStateListOf<RewriteJob>()
     val activeNovelId = mutableStateOf<Long?>(null)
+    val currentProcessingTitle = mutableStateOf("")
     val statusMessage = mutableStateOf("尚未导入小说")
     val longMemorySummary = mutableStateOf("尚未生成长篇记忆")
     val autoSaveEnabled = mutableStateOf(true)
@@ -223,6 +224,7 @@ object LocalNovelStore {
                 val index = novel.chapters.indexOfFirst { it.id == job.chapterId }
                 require(index >= 0) { "章节不存在" }
                 val chapter = novel.chapters[index]
+                currentProcessingTitle.value = "${chapter.title}"
                 val memory = buildContextForChapter(novel, chapter.index)
                 val provider = providers.firstOrNull { it.isDefault } ?: providers.firstOrNull() ?: error("请先配置模型提供商")
                 val rewritten = ModelApiClient.rewriteChapter(
@@ -240,9 +242,11 @@ object LocalNovelStore {
                     status = "已加料"
                 )
                 updateJobState(job.id, "完成", null)
+                currentProcessingTitle.value = "已完成：${chapter.title}"
                 refreshLongMemory(novel.id)
             }.onFailure { e ->
                 updateJobState(job.id, "失败", e.message ?: "未知错误")
+                currentProcessingTitle.value = "第 ${job.chapterIndex} 章（失败）"
                 updateChapterStatus(job.novelId, job.chapterId, "失败")
             }
         }
