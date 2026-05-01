@@ -1,5 +1,9 @@
 package com.java.myapplication.ui.screens
 
+import android.Manifest
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -78,6 +82,14 @@ fun RewriteScreen() {
     val failedJobs = LocalNovelStore.rewriteQueue.count { it.state == "失败" }
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { /* granted or denied — proceed either way */ }
+    fun requestNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
@@ -216,6 +228,7 @@ fun RewriteScreen() {
                     Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         Button(
                             onClick = {
+                                requestNotificationPermission()
                                 val start = startChapter.toIntOrNull()?.coerceAtLeast(1) ?: 1
                                 val end = endChapter.toIntOrNull()?.coerceAtLeast(start) ?: start
                                 val chapters = novel?.chapters?.filter { it.index in start..end }.orEmpty()
@@ -228,7 +241,7 @@ fun RewriteScreen() {
                         Text(LocalNovelStore.statusMessage.value, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text("后台队列：剩余 ${LocalNovelStore.queuedJobs()} · 已完成 ${LocalNovelStore.completedJobs()} · 失败 $failedJobs", color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                            OutlinedButton(onClick = { LocalNovelStore.retryFailedJobs(context) }, modifier = Modifier.weight(1f)) { Text("重试失败") }
+                            OutlinedButton(onClick = { requestNotificationPermission(); LocalNovelStore.retryFailedJobs(context) }, modifier = Modifier.weight(1f)) { Text("重试失败") }
                             OutlinedButton(onClick = { LocalNovelStore.clearFinishedJobs() }, modifier = Modifier.weight(1f)) { Text("清理完成") }
                         }
                     }
