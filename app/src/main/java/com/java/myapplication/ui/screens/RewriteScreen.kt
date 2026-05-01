@@ -82,12 +82,29 @@ fun RewriteScreen() {
     val failedJobs = LocalNovelStore.rewriteQueue.count { it.state == "失败" }
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    var pendingRetryAfterPermission by remember { mutableStateOf(false) }
+
+    fun doEnqueueRewrite() {
+        val start = startChapter.toIntOrNull()?.coerceAtLeast(1) ?: 1
+        val end = endChapter.toIntOrNull()?.coerceAtLeast(start) ?: start
+        val chapters = novel?.chapters?.filter { it.index in start..end }.orEmpty()
+        if (chapters.isNotEmpty()) {
+            LocalNovelStore.enqueueRewrite(context, chapters.map { it.id }, selectedTemplate?.content.orEmpty(), (intensity * 100).toInt())
+            scope.launch { snackbarHostState.showSnackbar("已加入改写队列") }
+        }
+    }
+
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
-    ) { /* granted or denied — proceed either way */ }
-    fun requestNotificationPermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+    ) { granted ->
+        if (pendingRetryAfterPermission) {
+            pendingRetryAfterPermission = false
+            LocalNovelStore.retryFailedJobs(context)
+        } else {
+            doEnqueueRewrite()
+        }
+        if (!granted) {
+            scope.launch { snackbarHostState.showSnackbar("通知权限未开启，改写将在后台静默执行") }
         }
     }
 
@@ -228,12 +245,11 @@ fun RewriteScreen() {
                     Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         Button(
                             onClick = {
-                                requestNotificationPermission()
-                                val start = startChapter.toIntOrNull()?.coerceAtLeast(1) ?: 1
-                                val end = endChapter.toIntOrNull()?.coerceAtLeast(start) ?: start
-                                val chapters = novel?.chapters?.filter { it.index in start..end }.orEmpty()
-                                LocalNovelStore.enqueueRewrite(context, chapters.map { it.id }, selectedTemplate?.content.orEmpty(), (intensity * 100).toInt())
-                                scope.launch { snackbarHostState.showSnackbar("已加入改写队列") }
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                    notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                } else {
+                                    doEnqueueRewrite()
+                                }
                             },
                             enabled = novel != null,
                             modifier = Modifier.fillMaxWidth()
@@ -241,7 +257,14 @@ fun RewriteScreen() {
                         Text(LocalNovelStore.statusMessage.value, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text("后台队列：剩余 ${LocalNovelStore.queuedJobs()} · 已完成 ${LocalNovelStore.completedJobs()} · 失败 $failedJobs", color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                            OutlinedButton(onClick = { requestNotificationPermission(); LocalNovelStore.retryFailedJobs(context) }, modifier = Modifier.weight(1f)) { Text("重试失败") }
+                            OutlinedButton(onClick = {
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                    pendingRetryAfterPermission = true
+                                    notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                } else {
+                                    LocalNovelStore.retryFailedJobs(context)
+                                }
+                            }, modifier = Modifier.weight(1f)) { Text("重试失败") }
                             OutlinedButton(onClick = { LocalNovelStore.clearFinishedJobs() }, modifier = Modifier.weight(1f)) { Text("清理完成") }
                         }
                     }
